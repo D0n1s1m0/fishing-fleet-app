@@ -1,0 +1,48 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Стили для скроллбара */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f4f8;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a5276;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0e3d5c;
+}
+
+/* Тёмная тема скроллбара */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: #162a45;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3498db;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+  }
+}

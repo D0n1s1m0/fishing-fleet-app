@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Сброс данных</title></head>
+<body>
+<h1>Сброс данных приложения</h1>
+<button onclick="reset()">Сбросить все данные и перезагрузить</button>
+<script>
+function reset() {
+  localStorage.clear();
+  alert('Данные сброшены!');
+  window.location.href = '/';
+}
+</script>
+</body>
+</html>

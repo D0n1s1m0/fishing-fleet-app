@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: fishing_user
+      POSTGRES_PASSWORD: fishing_password
+      POSTGRES_DB: fishing_fleet
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/triggers.sql:/docker-entrypoint-initdb.d/triggers.sql
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://fishing_user:fishing_password@postgres:5432/fishing_fleet
+      SECRET_KEY: your-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:
