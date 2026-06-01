@@ -29,4 +29,4 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 @app.get("/")
 def read_root():
-    return {"message": "Северный Рыболовецкий Флот API", "status": "running"}
+    return {"message": "OctoFish API", "status": "running"}
