@@ -38,6 +38,20 @@ interface TripListProps {
   isAdmin?: boolean
 }
 
+function validateFullName(name: string): string | null {
+  if (!name || name.trim().length < 5) {
+    return 'ФИО должно содержать не менее 5 символов'
+  }
+  const parts = name.trim().split(/\s+/)
+  if (parts.length < 2) {
+    return 'Введите фамилию и имя (минимум два слова)'
+  }
+  if (parts.length < 3) {
+    return 'Введите полное ФИО: фамилию, имя и отчество'
+  }
+  return null
+}
+
 const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCatch?: (tripId: number, catchData: any) => void; isAdmin?: boolean }> = ({ trip, onComplete, onAddCatch, isAdmin }) => {
   const [open, setOpen] = useState(false)
   const [catchDialogOpen, setCatchDialogOpen] = useState(false)
@@ -138,7 +152,8 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
 
   const handleAddTrip = () => {
     if (!newTrip.boat_id) { setError('Выберите судно'); return }
-    if (!newTrip.captain_name || newTrip.captain_name.trim().length < 5) { setError('Введите полное ФИО капитана (не менее 5 символов)'); return }
+    const nameError = validateFullName(newTrip.captain_name)
+    if (nameError) { setError(nameError); return }
     if (!newTrip.fishing_spots[0]) { setError('Выберите место лова'); return }
     if (onAddTrip) {
       onAddTrip({ boat_id: newTrip.boat_id, departure_date: newTrip.departure_date, fishing_spots: newTrip.fishing_spots, crew: [{ name: newTrip.captain_name.trim(), position: 'Капитан', experience: 0 }] })
@@ -185,8 +200,8 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Капитан (полное ФИО)" required value={newTrip.captain_name}
-                helperText="Введите фамилию, имя и отчество капитана"
+              <TextField fullWidth label="Фамилия Имя Отчество" required value={newTrip.captain_name}
+                helperText="Обязательно три слова: фамилия, имя и отчество"
                 onChange={(e) => setNewTrip({ ...newTrip, captain_name: e.target.value })} />
             </Grid>
           </Grid>
