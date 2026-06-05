@@ -25,6 +25,7 @@ interface Trip {
   crew: any[]
   catches: any[]
   fishing_spots: string[]
+  max_capacity?: number
 }
 
 interface TripListProps {
@@ -41,12 +42,28 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
   const [open, setOpen] = useState(false)
   const [catchDialogOpen, setCatchDialogOpen] = useState(false)
   const [catchData, setCatchData] = useState({ fish_type: '', amount: 0, quality: 'good' })
+  const [error, setError] = useState('')
+
+  const maxCapacity = trip.max_capacity || 1000
+  const remainingCapacity = maxCapacity - trip.total_catch
 
   const handleAddCatch = () => {
-    if (!catchData.fish_type || catchData.amount <= 0) return
+    if (!catchData.fish_type) {
+      setError('Выберите вид рыбы')
+      return
+    }
+    if (catchData.amount <= 0) {
+      setError('Укажите количество больше нуля')
+      return
+    }
+    if (catchData.amount > remainingCapacity) {
+      setError(`Недостаточно места на судне. Доступно: ${remainingCapacity} т из ${maxCapacity} т`)
+      return
+    }
     if (onAddCatch) {
       onAddCatch(trip.id, catchData)
       setCatchDialogOpen(false)
+      setError('')
       setCatchData({ fish_type: '', amount: 0, quality: 'good' })
     }
   }
@@ -82,7 +99,7 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">Детали рейса</Typography>
                 {trip.status === 'active' && isAdmin && (
-                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCatchDialogOpen(true)}>
+                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setError(''); setCatchDialogOpen(true) }}>
                     Добавить улов
                   </Button>
                 )}
@@ -156,7 +173,9 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
                 </Grid>
                 {trip.status === 'active' && (
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>Прогресс рейса: {trip.progress}%</Typography>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Прогресс рейса: {trip.progress}% ({trip.total_catch} т из {maxCapacity} т)
+                    </Typography>
                     <LinearProgress variant="determinate" value={trip.progress} sx={{ height: 8 }} />
                   </Grid>
                 )}
@@ -169,6 +188,10 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
       <Dialog open={catchDialogOpen} onClose={() => setCatchDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Добавить улов</DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Вместимость судна: {maxCapacity} т. Занято: {trip.total_catch} т. Доступно: {remainingCapacity} т.
+          </Alert>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <FormControl fullWidth>
@@ -190,7 +213,7 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
               <TextField fullWidth label="Количество (т)" type="number"
                 value={catchData.amount || ''}
                 onChange={(e) => setCatchData({ ...catchData, amount: parseFloat(e.target.value) || 0 })}
-                inputProps={{ min: 0, step: 0.1 }} />
+                inputProps={{ min: 0, max: remainingCapacity, step: 0.1 }} />
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth>
