@@ -5,8 +5,7 @@ import {
   Card, CardContent, Grid, Paper, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Chip, Menu, MenuItem,
   Tooltip, Avatar, Alert, Snackbar, Badge, LinearProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Select, FormControl, InputLabel
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material'
 import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat'
 import AddIcon from '@mui/icons-material/Add'
@@ -61,43 +60,115 @@ const DEFAULT_BOATS: Boat[] = [
   { id: 3, name: 'Восток', type: 'Траулер', displacement: 2800, build_date: '2019-11-10', passport_number: 'TR-023', status: 'in_port', captain: 'Петров М.С.', crew_capacity: 20, current_crew: 18, current_location: 'Порт Мурманск', max_speed: 13, fuel_level: 90, description: 'Траулер-морозильщик', last_maintenance: '2026-03-10', next_maintenance: '2026-04-20', total_catch: 320, fishCatch: { 'Треска': 200, 'Камбала': 120 }, trips: [] }
 ];
 
-const DEFAULT_TRIPS: Trip[] = [
-  { id: 1, boat_name: 'Атлант', boat_id: 1, departure_date: '2026-04-01', return_date: '2026-04-10', status: 'completed', total_catch: 45, progress: 100, crew: [{ id: 1, name: 'Сергеев А.Н.', position: 'Капитан', experience: 15 }], catches: [{ fish_type: 'Треска', amount: 30 }, { fish_type: 'Пикша', amount: 15 }], fishing_spots: ['Медвежинская банка'] },
-  { id: 2, boat_name: 'Баренц', boat_id: 2, departure_date: '2026-04-03', return_date: '2026-04-08', status: 'completed', total_catch: 28, progress: 100, crew: [{ id: 2, name: 'Иванов В.П.', position: 'Капитан', experience: 12 }], catches: [{ fish_type: 'Минтай', amount: 28 }], fishing_spots: ['Гусиная банка'] },
-];
+const DEFAULT_TRIPS: Trip[] = [];
 
 const useAppStore = () => {
-  const [fishingSpots, setFishingSpots] = useState<FishingSpot[]>(() => { try { return JSON.parse(localStorage.getItem('fishingSpots') || '[]'); } catch { return DEFAULT_SPOTS; } });
-  const [boats, setBoats] = useState<Boat[]>(() => { try { return JSON.parse(localStorage.getItem('boats') || '[]'); } catch { return DEFAULT_BOATS; } });
-  const [trips, setTrips] = useState<Trip[]>(() => { try { return JSON.parse(localStorage.getItem('trips') || '[]'); } catch { return DEFAULT_TRIPS; } });
-  const [requests, setRequests] = useState<any[]>(() => { try { return JSON.parse(localStorage.getItem('requests') || '[]'); } catch { return []; } });
+  const [fishingSpots, setFishingSpots] = useState<FishingSpot[]>(() => {
+    try { const saved = localStorage.getItem('octofish_spots'); return saved ? JSON.parse(saved) : DEFAULT_SPOTS; } catch { return DEFAULT_SPOTS; }
+  });
+  const [boats, setBoats] = useState<Boat[]>(() => {
+    try { const saved = localStorage.getItem('octofish_boats'); return saved ? JSON.parse(saved) : DEFAULT_BOATS; } catch { return DEFAULT_BOATS; }
+  });
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    try { const saved = localStorage.getItem('octofish_trips'); return saved ? JSON.parse(saved) : DEFAULT_TRIPS; } catch { return DEFAULT_TRIPS; }
+  });
+  const [requests, setRequests] = useState<any[]>(() => {
+    try { const saved = localStorage.getItem('octofish_requests'); return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
 
-  useEffect(() => { localStorage.setItem('fishingSpots', JSON.stringify(fishingSpots)); }, [fishingSpots]);
-  useEffect(() => { localStorage.setItem('boats', JSON.stringify(boats)); }, [boats]);
-  useEffect(() => { localStorage.setItem('trips', JSON.stringify(trips)); }, [trips]);
-  useEffect(() => { localStorage.setItem('requests', JSON.stringify(requests)); }, [requests]);
-
-  useEffect(() => { setBoats(prev => prev.map(b => { const hasActiveTrip = trips.some(t => t.boat_id === b.id && t.status === 'active'); if (b.status === 'maintenance' || b.status === 'pending') return b; return { ...b, status: hasActiveTrip ? 'active' : 'in_port' }; })); }, [trips]);
+  useEffect(() => { localStorage.setItem('octofish_spots', JSON.stringify(fishingSpots)); }, [fishingSpots]);
+  useEffect(() => { localStorage.setItem('octofish_boats', JSON.stringify(boats)); }, [boats]);
+  useEffect(() => { localStorage.setItem('octofish_trips', JSON.stringify(trips)); }, [trips]);
+  useEffect(() => { localStorage.setItem('octofish_requests', JSON.stringify(requests)); }, [requests]);
 
   const updateBoat = (boatId: number, updates: Partial<Boat>) => setBoats(boats.map(b => b.id === boatId ? { ...b, ...updates } : b));
   const deleteBoat = (boatId: number) => setBoats(boats.filter(b => b.id !== boatId));
   const approveBoat = (boatId: number) => setBoats(boats.map(b => b.id === boatId ? { ...b, status: 'in_port' } : b));
   const deleteSpot = (spotId: number) => setFishingSpots(fishingSpots.filter(s => s.id !== spotId));
-  const addRequest = (type: string, data: any, createdBy: string) => setRequests([...requests, { id: Date.now(), type, data, status: 'pending', createdBy, createdAt: new Date().toISOString().split('T')[0] }]);
-  const approveRequest = (reqId: number) => { const req = requests.find(r => r.id === reqId); if (!req) return; if (req.type === 'boat') setBoats([...boats, { ...req.data, id: Date.now(), status: 'in_port', current_crew: 0, fuel_level: 100, total_catch: 0, fishCatch: {}, trips: [] }]); else if (req.type === 'spot') setFishingSpots([...fishingSpots, { ...req.data, id: Date.now() }]); setRequests(requests.map(r => r.id === reqId ? { ...r, status: 'approved' } : r)); };
+
+  const addRequest = (type: string, data: any, createdBy: string) => {
+    const newReq = { id: Date.now(), type, data, status: 'pending', createdBy, createdAt: new Date().toISOString().split('T')[0] };
+    setRequests([...requests, newReq]);
+  };
+
+  const approveRequest = (reqId: number) => {
+    const req = requests.find(r => r.id === reqId);
+    if (!req) return;
+    
+    if (req.type === 'boat') {
+      const newBoat: Boat = { ...req.data, id: Date.now(), status: 'in_port', current_crew: 0, fuel_level: 100, total_catch: 0, fishCatch: {}, trips: [] };
+      setBoats([...boats, newBoat]);
+    } else if (req.type === 'spot') {
+      const newSpot: FishingSpot = { ...req.data, id: Date.now() };
+      if (!newSpot.position) newSpot.position = [69.0, 35.0];
+      setFishingSpots([...fishingSpots, newSpot]);
+    } else if (req.type === 'trip') {
+      const boat = boats.find(b => b.id === req.data.boat_id);
+      const newTrip: Trip = {
+        id: Date.now(),
+        boat_name: boat ? boat.name : req.data.boat_name,
+        boat_id: req.data.boat_id,
+        departure_date: req.data.departure_date || new Date().toISOString().split('T')[0],
+        return_date: null,
+        status: 'active',
+        total_catch: 0,
+        progress: 0,
+        crew: req.data.crew || [],
+        catches: [],
+        fishing_spots: req.data.fishing_spots || []
+      };
+      setTrips([...trips, newTrip]);
+      if (boat) {
+        updateBoat(boat.id, {
+          status: 'active',
+          current_location: req.data.fishing_spots ? req.data.fishing_spots[0] : boat.current_location
+        });
+      }
+    }
+    setRequests(requests.map(r => r.id === reqId ? { ...r, status: 'approved' } : r));
+  };
+
   const rejectRequest = (reqId: number) => setRequests(requests.map(r => r.id === reqId ? { ...r, status: 'rejected' } : r));
-  const addTrip = (tripData: any) => { const boat = boats.find(b => b.id === tripData.boat_id); setTrips([...trips, { ...tripData, id: Date.now(), boat_name: boat?.name || 'Неизвестно', status: 'active', total_catch: 0, progress: 0 }]); if (boat) updateBoat(boat.id, { current_location: tripData.fishing_spots?.[0] || boat.current_location }); };
-  const completeTrip = (tripId: number) => { const trip = trips.find(t => t.id === tripId); if (trip) { const boat = boats.find(b => b.id === trip.boat_id); if (boat) { const newFishCatch = { ...boat.fishCatch }; trip.catches?.forEach((c: any) => { newFishCatch[c.fish_type] = (newFishCatch[c.fish_type] || 0) + c.amount; }); updateBoat(boat.id, { current_location: 'Порт Мурманск', total_catch: boat.total_catch + trip.total_catch, fishCatch: newFishCatch }); } } setTrips(trips.map(t => t.id === tripId ? { ...t, status: 'completed', return_date: new Date().toISOString().split('T')[0], progress: 100 } : t)); };
+
+  const addTrip = (tripData: any) => {
+    const boat = boats.find(b => b.id === tripData.boat_id);
+    const newTrip: Trip = {
+      ...tripData,
+      id: Date.now(),
+      boat_name: boat ? boat.name : 'Неизвестно',
+      status: 'active',
+      total_catch: 0,
+      progress: 0
+    };
+    setTrips([...trips, newTrip]);
+    if (boat) updateBoat(boat.id, { status: 'active', current_location: tripData.fishing_spots ? tripData.fishing_spots[0] : boat.current_location });
+  };
+
+  const completeTrip = (tripId: number) => {
+    const trip = trips.find(t => t.id === tripId);
+    if (trip) {
+      const boat = boats.find(b => b.id === trip.boat_id);
+      if (boat) {
+        const newFishCatch = { ...boat.fishCatch };
+        trip.catches?.forEach((c: any) => { newFishCatch[c.fish_type] = (newFishCatch[c.fish_type] || 0) + c.amount; });
+        updateBoat(boat.id, { current_location: 'Порт Мурманск', status: 'in_port', total_catch: boat.total_catch + trip.total_catch, fishCatch: newFishCatch });
+      }
+    }
+    setTrips(trips.map(t => t.id === tripId ? { ...t, status: 'completed', return_date: new Date().toISOString().split('T')[0], progress: 100 } : t));
+  };
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
   const activeTripsCount = trips.filter(t => t.status === 'active').length;
   const fishingSpotsList = fishingSpots.filter(s => s.depth > 0 && s.position);
   const totalBoats = boats.filter(b => b.status !== 'pending').length;
   const totalCatch = boats.reduce((sum, boat) => sum + (boat.total_catch || 0), 0);
-  const activeBoatsList = boats.filter(b => b.status === 'active');
-  const totalCatchByFish = () => { const result: { [key: string]: number } = {}; boats.forEach(boat => { if (boat.fishCatch) Object.entries(boat.fishCatch).forEach(([fish, amount]) => { result[fish] = (result[fish] || 0) + amount; }); }); return Object.entries(result).map(([name, amount]) => ({ name, amount })); };
+  const totalCatchByFish = () => {
+    const result: { [key: string]: number } = {};
+    boats.forEach(boat => { if (boat.fishCatch) Object.entries(boat.fishCatch).forEach(([fish, amount]) => { result[fish] = (result[fish] || 0) + amount; }); });
+    return Object.entries(result).map(([name, amount]) => ({ name, amount }));
+  };
 
-  return { fishingSpots: fishingSpotsList, allSpots: fishingSpots, boats, trips, requests, pendingCount, activeTripsCount, totalBoats, totalCatch, activeBoatsList, totalCatchByFish: totalCatchByFish(), addRequest, approveRequest, rejectRequest, updateBoat, deleteBoat, approveBoat, deleteSpot, addTrip, completeTrip };
+  return { fishingSpots: fishingSpotsList, allSpots: fishingSpots, boats, trips, requests, pendingCount, activeTripsCount, totalBoats, totalCatch, totalCatchByFish: totalCatchByFish(), addRequest, approveRequest, rejectRequest, updateBoat, deleteBoat, approveBoat, deleteSpot, addTrip, completeTrip };
 };
 
 function LoginDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -126,7 +197,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     if (users.find((u: any) => u.username === form.username)) { setError('Логин занят'); return; }
     users.push({ ...form, role: 'client' });
     localStorage.setItem('octofish_users', JSON.stringify(users));
-    onClose(); setForm({ username: '', email: '', full_name: '', password: '' }); setError('');
+    onClose(); setForm({ username: '', email: '', full_name: '', password: '' });
     alert('Регистрация успешна! Войдите как ' + form.full_name);
   };
   return (
@@ -185,11 +256,11 @@ function AppHeader({ pendingCount, onAddRequest }: any) {
   );
 }
 
-function HomePage({ boats, trips, spots, activeTripsCount, totalBoats, totalCatch, activeBoatsList, totalCatchByFish }: any) {
+function HomePage({ boats, trips, spots, activeTripsCount, totalBoats, totalCatch, totalCatchByFish }: any) {
   const navigate = useNavigate(); const { isAdmin } = useAuth();
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'primary.main' }}><DirectionsBoatIcon sx={{ mr: 1, verticalAlign: 'middle' }} />OctoFish - Панель управления</Typography>
+      <Typography variant="h4" gutterBottom sx={{ color: 'primary.main' }}><DirectionsBoatIcon sx={{ mr: 1 }} />OctoFish - Панель управления</Typography>
       <Alert severity="info" sx={{ mb: 3 }}>{isAdmin ? 'Вы вошли как Администратор.' : useAuth().isClient ? 'Вы вошли как Клиент.' : 'Вы вошли как Гость.'}</Alert>
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}><Card sx={{ cursor: 'pointer', background: '#2e7d32', color: 'white' }} onClick={() => navigate('/boats')}><CardContent><Typography variant="h6">Всего судов</Typography><Typography variant="h3">{totalBoats}</Typography></CardContent></Card></Grid>
@@ -197,74 +268,33 @@ function HomePage({ boats, trips, spots, activeTripsCount, totalBoats, totalCatc
         <Grid item xs={12} sm={6} md={3}><Card sx={{ background: '#e65100', color: 'white' }}><CardContent><Typography variant="h6">Общий улов</Typography><Typography variant="h3">{totalCatch}</Typography></CardContent></Card></Grid>
         <Grid item xs={12} sm={6} md={3}><Card sx={{ cursor: 'pointer', background: '#0288d1', color: 'white' }} onClick={() => navigate('/spots')}><CardContent><Typography variant="h6">Мест лова</Typography><Typography variant="h3">{spots.length}</Typography></CardContent></Card></Grid>
       </Grid>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Суда и их улов</Typography>
-            <TableContainer>
-              <Table>
-                <TableHead><TableRow><TableCell>Судно</TableCell><TableCell>Капитан</TableCell><TableCell>Статус</TableCell><TableCell>Общий улов</TableCell><TableCell>Детализация</TableCell></TableRow></TableHead>
-                <TableBody>
-                  {boats.filter((b: Boat) => b.status !== 'pending').map((boat: Boat) => (
-                    <TableRow key={boat.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate('/boats')}>
-                      <TableCell><strong>{boat.name}</strong></TableCell><TableCell>{boat.captain}</TableCell>
-                      <TableCell><Chip label={boat.status === 'active' ? 'В рейсе' : 'В порту'} color={boat.status === 'active' ? 'success' : 'default'} size="small" /></TableCell>
-                      <TableCell><strong>{boat.total_catch} т</strong></TableCell>
-                      <TableCell>{boat.fishCatch && Object.keys(boat.fishCatch).length > 0 ? Object.entries(boat.fishCatch).map(([fish, amount]) => <Chip key={fish} label={`${fish}: ${amount} т`} size="small" variant="outlined" sx={{ mr: 0.5 }} />) : 'Нет данных'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Общий улов по видам рыб</Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead><TableRow><TableCell>Вид рыбы</TableCell><TableCell align="right">Количество (т)</TableCell><TableCell align="right">Доля</TableCell></TableRow></TableHead>
-                <TableBody>
-                  {totalCatchByFish.map((item: any) => (
-                    <TableRow key={item.name}>
-                      <TableCell>{item.name}</TableCell><TableCell align="right"><strong>{item.amount}</strong></TableCell>
-                      <TableCell align="right"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}><LinearProgress variant="determinate" value={totalCatch > 0 ? (item.amount / totalCatch) * 100 : 0} sx={{ width: 100, height: 8 }} /><Typography variant="caption">{totalCatch > 0 ? Math.round((item.amount / totalCatch) * 100) : 0}%</Typography></Box></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Последние рейсы</Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead><TableRow><TableCell>Судно</TableCell><TableCell>Дата</TableCell><TableCell>Улов</TableCell><TableCell>Статус</TableCell></TableRow></TableHead>
-                <TableBody>
-                  {trips.slice(-5).reverse().map((trip: Trip) => (
-                    <TableRow key={trip.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate('/trips')}>
-                      <TableCell>{trip.boat_name}</TableCell><TableCell>{new Date(trip.departure_date).toLocaleDateString('ru-RU')}</TableCell><TableCell>{trip.total_catch} т</TableCell>
-                      <TableCell><Chip label={trip.status === 'completed' ? 'Завершен' : 'Активен'} color={trip.status === 'completed' ? 'default' : 'success'} size="small" /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
+      <Paper sx={{ p: 2 }}>
+        <Typography variant="h6" gutterBottom>Суда и их улов</Typography>
+        <TableContainer>
+          <Table>
+            <TableHead><TableRow><TableCell>Судно</TableCell><TableCell>Капитан</TableCell><TableCell>Статус</TableCell><TableCell>Общий улов</TableCell><TableCell>Детализация</TableCell></TableRow></TableHead>
+            <TableBody>
+              {boats.filter((b: Boat) => b.status !== 'pending').map((boat: Boat) => (
+                <TableRow key={boat.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate('/boats')}>
+                  <TableCell><strong>{boat.name}</strong></TableCell><TableCell>{boat.captain}</TableCell>
+                  <TableCell><Chip label={boat.status === 'active' ? 'В рейсе' : boat.status === 'in_port' ? 'В порту' : boat.status} color={boat.status === 'active' ? 'success' : 'default'} size="small" /></TableCell>
+                  <TableCell><strong>{boat.total_catch} т</strong></TableCell>
+                  <TableCell>{boat.fishCatch && Object.keys(boat.fishCatch).length > 0 ? Object.entries(boat.fishCatch).map(([fish, amount]) => <Chip key={fish} label={`${fish}: ${amount} т`} size="small" variant="outlined" sx={{ mr: 0.5 }} />) : 'Нет данных'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
     </Container>
   );
 }
 
 function BoatsPage({ boats, allSpots, onUpdateBoat, onDeleteBoat, onApproveBoat }: any) {
   const [selectedBoat, setSelectedBoat] = useState<Boat | null>(null); const { isAdmin } = useAuth();
-  const activeBoats = boats.filter((b: Boat) => b.status !== 'pending');
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom><DirectionsBoatIcon sx={{ mr: 1 }} />Суда ({activeBoats.length})</Typography>
+      <Typography variant="h4" gutterBottom><DirectionsBoatIcon sx={{ mr: 1 }} />Суда ({boats.filter((b: Boat) => b.status !== 'pending').length})</Typography>
       {isAdmin && boats.filter((b: Boat) => b.status === 'pending').length > 0 && (
         <Paper sx={{ p: 2, mb: 2, bgcolor: 'warning.light' }}><Typography variant="h6">На проверке</Typography>
           {boats.filter((b: Boat) => b.status === 'pending').map((boat: Boat) => (
@@ -273,11 +303,11 @@ function BoatsPage({ boats, allSpots, onUpdateBoat, onDeleteBoat, onApproveBoat 
         </Paper>
       )}
       <Grid container spacing={3}>
-        {activeBoats.map((boat: Boat) => (
+        {boats.filter((b: Boat) => b.status !== 'pending').map((boat: Boat) => (
           <Grid item xs={12} sm={6} md={4} key={boat.id}>
             <Box sx={{ position: 'relative' }}>
               <BoatCard boat={boat} onClick={() => setSelectedBoat(boat)} />
-              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: "background.paper", mr: 0.5 }} onClick={(e) => { e.stopPropagation(); setSelectedBoat(boat); }}><EditIcon fontSize="small" /></IconButton><IconButton size="small" sx={{ bgcolor: "background.paper" }} onClick={(e) => { e.stopPropagation(); onDeleteBoat(boat.id); }}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
+              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: 'background.paper', mr: 0.5 }} onClick={(e) => { e.stopPropagation(); setSelectedBoat(boat); }}><EditIcon fontSize="small" /></IconButton><IconButton size="small" sx={{ bgcolor: 'background.paper' }} onClick={(e) => { e.stopPropagation(); onDeleteBoat(boat.id); }}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
             </Box>
           </Grid>
         ))}
@@ -303,7 +333,7 @@ function SpotsPage({ spots, onDeleteSpot }: any) {
         {validSpots.map((spot: FishingSpot) => (
           <Grid item xs={12} sm={6} md={4} key={spot.id}>
             <Card sx={{ position: 'relative' }}>
-              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: "background.paper" }} onClick={() => onDeleteSpot(spot.id)}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
+              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: 'background.paper' }} onClick={() => onDeleteSpot(spot.id)}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><Box sx={{ width: 12, height: 12, bgcolor: spot.catchRate === 'high' ? '#4caf50' : spot.catchRate === 'medium' ? '#ff9800' : '#f44336', mr: 1 }} /><Typography variant="h6">{spot.name}</Typography></Box>
                 <Typography variant="body2">Координаты: {spot.position[0]}°N, {spot.position[1]}°E</Typography>
@@ -343,7 +373,7 @@ function AppContent() {
         <AppHeader pendingCount={store.pendingCount} onAddRequest={(t: any) => setRequestType(t)} />
         <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
           <Routes>
-            <Route path="/" element={<HomePage boats={store.boats} trips={store.trips} spots={store.fishingSpots} activeTripsCount={store.activeTripsCount} totalBoats={store.totalBoats} totalCatch={store.totalCatch} activeBoatsList={store.activeBoatsList} totalCatchByFish={store.totalCatchByFish} />} />
+            <Route path="/" element={<HomePage boats={store.boats} trips={store.trips} spots={store.fishingSpots} activeTripsCount={store.activeTripsCount} totalBoats={store.totalBoats} totalCatch={store.totalCatch} totalCatchByFish={store.totalCatchByFish} />} />
             <Route path="/boats" element={<BoatsPage boats={store.boats} allSpots={store.allSpots} onUpdateBoat={store.updateBoat} onDeleteBoat={store.deleteBoat} onApproveBoat={store.approveBoat} />} />
             <Route path="/trips" element={<TripsPage trips={store.trips} boats={store.boats} spots={store.fishingSpots} onAddTrip={store.addTrip} onCompleteTrip={store.completeTrip} />} />
             <Route path="/spots" element={<SpotsPage spots={store.fishingSpots} onDeleteSpot={store.deleteSpot} />} />
