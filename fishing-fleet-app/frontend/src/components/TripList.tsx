@@ -68,6 +68,8 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
     }
   }
 
+  const captain = trip.crew.length > 0 ? trip.crew[0] : null
+
   return (
     <>
       <TableRow>
@@ -108,26 +110,13 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
                     <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Экипаж ({trip.crew.length} чел.)
+                    Капитан
                   </Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>ФИО</TableCell>
-                        <TableCell>Должность</TableCell>
-                        <TableCell>Опыт (лет)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {trip.crew.map((member) => (
-                        <TableRow key={member.id || member.name}>
-                          <TableCell>{member.name}</TableCell>
-                          <TableCell>{member.position}</TableCell>
-                          <TableCell>{member.experience || 0}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  {captain ? (
+                    <Typography variant="body1">{captain.name}</Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">Не указан</Typography>
+                  )}
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
