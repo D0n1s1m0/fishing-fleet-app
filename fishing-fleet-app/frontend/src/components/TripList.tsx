@@ -1,99 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Collapse, Box, Typography, Grid, LinearProgress,
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  FormControl, InputLabel, Select, MenuItem
-} from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PersonIcon from '@mui/icons-material/Person';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import AddIcon from '@mui/icons-material/Add';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-
-interface CrewMember {
-  id: number;
-  name: string;
-  position: string;
-  experience: number;
-}
-
-interface Catch {
-  fish_type: string;
-  amount: number;
-  quality: 'excellent' | 'good' | 'poor';
-}
+  FormControl, InputLabel, Select, MenuItem, Alert
+} from '@mui/material'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import PersonIcon from '@mui/icons-material/Person'
+import RestaurantIcon from '@mui/icons-material/Restaurant'
+import AddIcon from '@mui/icons-material/Add'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 interface Trip {
-  id: number;
-  boat_name: string;
-  boat_id: number;
-  departure_date: string;
-  return_date: string | null;
-  status: 'active' | 'completed' | 'planned' | 'pending';
-  total_catch: number;
-  progress: number;
-  crew: CrewMember[];
-  catches: Catch[];
-  fishing_spots: string[];
-}
-
-interface Boat {
-  id: number;
-  name: string;
-  status: string;
-}
-
-interface FishingSpot {
-  id: number;
-  name: string;
-  depth: number;
+  id: number
+  boat_name: string
+  boat_id: number
+  departure_date: string
+  return_date: string | null
+  status: 'active' | 'completed' | 'planned' | 'pending'
+  total_catch: number
+  progress: number
+  crew: any[]
+  catches: any[]
+  fishing_spots: string[]
 }
 
 interface TripListProps {
-  trips: Trip[];
-  boats: Boat[];
-  spots: FishingSpot[];
-  onAddTrip?: (data: any) => void;
-  onCompleteTrip?: (id: number) => void;
-  isAdmin?: boolean;
+  trips: Trip[]
+  boats: any[]
+  spots: any[]
+  onAddTrip?: (data: any) => void
+  onCompleteTrip?: (id: number) => void
+  isAdmin?: boolean
 }
 
 const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin?: boolean }> = ({ trip, onComplete, isAdmin }) => {
-  const [open, setOpen] = useState(false);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'completed': return 'default';
-      case 'planned': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return '🚢 Активен';
-      case 'completed': return '✅ Завершен';
-      case 'planned': return '📋 Запланирован';
-      default: return status;
-    }
-  };
-
-  const getQualityColor = (quality: string) => {
-    switch (quality) {
-      case 'excellent': return 'success';
-      case 'good': return 'primary';
-      case 'poor': return 'error';
-      default: return 'default';
-    }
-  };
+  const [open, setOpen] = useState(false)
 
   return (
     <>
-      <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+      <TableRow>
         <TableCell>
           <IconButton size="small" onClick={() => setOpen(!open)}>
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
@@ -101,15 +49,12 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
         </TableCell>
         <TableCell>{trip.boat_name}</TableCell>
         <TableCell>{new Date(trip.departure_date).toLocaleDateString('ru-RU')}</TableCell>
-        <TableCell>{trip.return_date ? new Date(trip.return_date).toLocaleDateString('ru-RU') : '—'}</TableCell>
+        <TableCell>{trip.return_date ? new Date(trip.return_date).toLocaleDateString('ru-RU') : '---'}</TableCell>
         <TableCell>{trip.total_catch} т</TableCell>
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip 
-              label={getStatusLabel(trip.status)}
-              color={getStatusColor(trip.status) as any}
-              size="small"
-            />
+            <Chip label={trip.status === 'active' ? 'Активен' : trip.status === 'completed' ? 'Завершен' : 'Запланирован'}
+              color={trip.status === 'active' ? 'success' : trip.status === 'completed' ? 'default' : 'warning'} size="small" />
             {trip.status === 'active' && isAdmin && onComplete && (
               <IconButton size="small" color="success" onClick={() => onComplete(trip.id)} title="Завершить рейс">
                 <CheckCircleIcon fontSize="small" />
@@ -123,7 +68,6 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 2 }}>
               <Typography variant="h6" gutterBottom>Детали рейса</Typography>
-              
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
@@ -140,16 +84,15 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
                     </TableHead>
                     <TableBody>
                       {trip.crew.map((member) => (
-                        <TableRow key={member.id}>
+                        <TableRow key={member.id || member.name}>
                           <TableCell>{member.name}</TableCell>
                           <TableCell>{member.position}</TableCell>
-                          <TableCell>{member.experience}</TableCell>
+                          <TableCell>{member.experience || 0}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </Grid>
-                
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
                     <RestaurantIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -169,18 +112,14 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
                           <TableCell>{item.fish_type}</TableCell>
                           <TableCell>{item.amount}</TableCell>
                           <TableCell>
-                            <Chip 
-                              label={item.quality === 'excellent' ? 'Отличное' : item.quality === 'good' ? 'Хорошее' : 'Низкое'}
-                              color={getQualityColor(item.quality) as any}
-                              size="small"
-                            />
+                            <Chip label={item.quality === 'excellent' ? 'Отличное' : item.quality === 'good' ? 'Хорошее' : 'Низкое'}
+                              color={item.quality === 'excellent' ? 'success' : 'primary'} size="small" />
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </Grid>
-                
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" gutterBottom>
                     <LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -192,17 +131,10 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
                     ))}
                   </Box>
                 </Grid>
-                
                 {trip.status === 'active' && (
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Прогресс рейса: {trip.progress}%
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={trip.progress} 
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
+                    <Typography variant="subtitle2" gutterBottom>Прогресс рейса: {trip.progress}%</Typography>
+                    <LinearProgress variant="determinate" value={trip.progress} sx={{ height: 8 }} />
                   </Grid>
                 )}
               </Grid>
@@ -211,48 +143,58 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
         </TableCell>
       </TableRow>
     </>
-  );
-};
+  )
+}
 
 const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onCompleteTrip, isAdmin }) => {
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newTrip, setNewTrip] = useState({
     boat_id: 0,
     departure_date: new Date().toISOString().split('T')[0],
     fishing_spots: [''],
-    crew: [{ id: 1, name: '', position: 'Капитан', experience: 0 }],
+    crew: [{ name: '', position: 'Капитан', experience: 0 }],
     catches: []
-  });
+  })
+  const [error, setError] = useState('')
 
-  const activeBoats = boats.filter(b => b.status === 'in_port' || b.status === 'active');
-  const fishingSpotsList = spots.filter(s => s.depth > 0);
+  const activeBoats = boats.filter((b: any) => b.status === 'in_port')
+  const fishingSpotsList = spots.filter((s: any) => s.depth > 0)
 
   const handleAddTrip = () => {
-    if (onAddTrip && newTrip.boat_id > 0 && newTrip.fishing_spots[0]) {
-      onAddTrip(newTrip);
-      setAddDialogOpen(false);
+    if (!newTrip.boat_id) {
+      setError('Выберите судно')
+      return
+    }
+    if (!newTrip.crew[0].name) {
+      setError('Укажите капитана')
+      return
+    }
+    if (!newTrip.fishing_spots[0]) {
+      setError('Выберите место лова')
+      return
+    }
+    if (onAddTrip) {
+      onAddTrip(newTrip)
+      setAddDialogOpen(false)
+      setError('')
       setNewTrip({
         boat_id: 0,
         departure_date: new Date().toISOString().split('T')[0],
         fishing_spots: [''],
-        crew: [{ id: 1, name: '', position: 'Капитан', experience: 0 }],
+        crew: [{ name: '', position: 'Капитан', experience: 0 }],
         catches: []
-      });
+      })
     }
-  };
+  }
 
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" sx={{ color: 'primary.main' }}>
-          🚢 Рейсы флота ({trips.filter(t => t.status === 'active').length} активных)
+          Рейсы флота ({trips.filter(t => t.status === 'active').length} активных)
         </Typography>
-        {(isAdmin || true) && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setAddDialogOpen(true)}
-          >
+        {isAdmin && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>
             Новый рейс
           </Button>
         )}
@@ -281,40 +223,30 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Новый рейс</DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Выберите судно</InputLabel>
-                <Select
-                  value={newTrip.boat_id}
-                  label="Выберите судно"
-                  onChange={(e) => setNewTrip({ ...newTrip, boat_id: Number(e.target.value) })}
-                >
+                <Select value={newTrip.boat_id} label="Выберите судно"
+                  onChange={(e) => setNewTrip({ ...newTrip, boat_id: Number(e.target.value) })}>
                   <MenuItem value={0}>Выберите судно...</MenuItem>
                   {activeBoats.map(boat => (
-                    <MenuItem key={boat.id} value={boat.id}>{boat.name} ({boat.status === 'active' ? 'в рейсе' : 'в порту'})</MenuItem>
+                    <MenuItem key={boat.id} value={boat.id}>{boat.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Дата выхода"
-                type="date"
-                value={newTrip.departure_date}
-                onChange={(e) => setNewTrip({ ...newTrip, departure_date: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
+              <TextField fullWidth label="Дата выхода" type="date"
+                value={newTrip.departure_date} InputLabelProps={{ shrink: true }}
+                onChange={(e) => setNewTrip({ ...newTrip, departure_date: e.target.value })} />
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Место лова</InputLabel>
-                <Select
-                  value={newTrip.fishing_spots[0] || ''}
-                  label="Место лова"
-                  onChange={(e) => setNewTrip({ ...newTrip, fishing_spots: [e.target.value] })}
-                >
+                <Select value={newTrip.fishing_spots[0] || ''} label="Место лова"
+                  onChange={(e) => setNewTrip({ ...newTrip, fishing_spots: [e.target.value] })}>
                   <MenuItem value="">Выберите место...</MenuItem>
                   {fishingSpotsList.map(spot => (
                     <MenuItem key={spot.id} value={spot.name}>{spot.name}</MenuItem>
@@ -323,29 +255,19 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Капитан</Typography>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="ФИО капитана"
+              <TextField fullWidth label="Капитан" required
                 value={newTrip.crew[0].name}
-                onChange={(e) => setNewTrip({
-                  ...newTrip,
-                  crew: [{ ...newTrip.crew[0], name: e.target.value }]
-                })}
-              />
+                onChange={(e) => setNewTrip({ ...newTrip, crew: [{ name: e.target.value, position: 'Капитан', experience: 0 }] })} />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)}>Отмена</Button>
-          <Button variant="contained" onClick={handleAddTrip}>
-            Создать рейс
-          </Button>
+          <Button variant="contained" onClick={handleAddTrip}>Создать рейс</Button>
         </DialogActions>
       </Dialog>
     </>
-  );
-};
+  )
+}
 
-export default TripList;
+export default TripList
