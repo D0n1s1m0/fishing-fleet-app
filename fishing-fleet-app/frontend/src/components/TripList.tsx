@@ -33,11 +33,23 @@ interface TripListProps {
   spots: any[]
   onAddTrip?: (data: any) => void
   onCompleteTrip?: (id: number) => void
+  onAddCatch?: (tripId: number, catchData: { fish_type: string; amount: number; quality: string }) => void
   isAdmin?: boolean
 }
 
-const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin?: boolean }> = ({ trip, onComplete, isAdmin }) => {
+const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCatch?: (tripId: number, catchData: any) => void; isAdmin?: boolean }> = ({ trip, onComplete, onAddCatch, isAdmin }) => {
   const [open, setOpen] = useState(false)
+  const [catchDialogOpen, setCatchDialogOpen] = useState(false)
+  const [catchData, setCatchData] = useState({ fish_type: '', amount: 0, quality: 'good' })
+
+  const handleAddCatch = () => {
+    if (!catchData.fish_type || catchData.amount <= 0) return
+    if (onAddCatch) {
+      onAddCatch(trip.id, catchData)
+      setCatchDialogOpen(false)
+      setCatchData({ fish_type: '', amount: 0, quality: 'good' })
+    }
+  }
 
   return (
     <>
@@ -67,7 +79,14 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 2 }}>
-              <Typography variant="h6" gutterBottom>Детали рейса</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Детали рейса</Typography>
+                {trip.status === 'active' && isAdmin && (
+                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCatchDialogOpen(true)}>
+                    Добавить улов
+                  </Button>
+                )}
+              </Box>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>
@@ -98,27 +117,31 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
                     <RestaurantIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                     Улов по видам
                   </Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Вид рыбы</TableCell>
-                        <TableCell>Количество (т)</TableCell>
-                        <TableCell>Качество</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {trip.catches.map((item, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell>{item.fish_type}</TableCell>
-                          <TableCell>{item.amount}</TableCell>
-                          <TableCell>
-                            <Chip label={item.quality === 'excellent' ? 'Отличное' : item.quality === 'good' ? 'Хорошее' : 'Низкое'}
-                              color={item.quality === 'excellent' ? 'success' : 'primary'} size="small" />
-                          </TableCell>
+                  {trip.catches.length > 0 ? (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Вид рыбы</TableCell>
+                          <TableCell>Количество (т)</TableCell>
+                          <TableCell>Качество</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHead>
+                      <TableBody>
+                        {trip.catches.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{item.fish_type}</TableCell>
+                            <TableCell>{item.amount}</TableCell>
+                            <TableCell>
+                              <Chip label={item.quality === 'excellent' ? 'Отличное' : item.quality === 'good' ? 'Хорошее' : 'Низкое'}
+                                color={item.quality === 'excellent' ? 'success' : 'primary'} size="small" />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Alert severity="info">Улов пока не добавлен</Alert>
+                  )}
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" gutterBottom>
@@ -142,11 +165,56 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; isAdmin
           </Collapse>
         </TableCell>
       </TableRow>
+
+      <Dialog open={catchDialogOpen} onClose={() => setCatchDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Добавить улов</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Вид рыбы</InputLabel>
+                <Select value={catchData.fish_type} label="Вид рыбы"
+                  onChange={(e) => setCatchData({ ...catchData, fish_type: e.target.value })}>
+                  <MenuItem value="">Выберите вид...</MenuItem>
+                  <MenuItem value="Треска">Треска</MenuItem>
+                  <MenuItem value="Пикша">Пикша</MenuItem>
+                  <MenuItem value="Минтай">Минтай</MenuItem>
+                  <MenuItem value="Сайда">Сайда</MenuItem>
+                  <MenuItem value="Камбала">Камбала</MenuItem>
+                  <MenuItem value="Палтус">Палтус</MenuItem>
+                  <MenuItem value="Зубатка">Зубатка</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Количество (т)" type="number"
+                value={catchData.amount || ''}
+                onChange={(e) => setCatchData({ ...catchData, amount: parseFloat(e.target.value) || 0 })}
+                inputProps={{ min: 0, step: 0.1 }} />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>Качество</InputLabel>
+                <Select value={catchData.quality} label="Качество"
+                  onChange={(e) => setCatchData({ ...catchData, quality: e.target.value })}>
+                  <MenuItem value="excellent">Отличное</MenuItem>
+                  <MenuItem value="good">Хорошее</MenuItem>
+                  <MenuItem value="poor">Низкое</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCatchDialogOpen(false)}>Отмена</Button>
+          <Button variant="contained" onClick={handleAddCatch}>Добавить</Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }
 
-const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onCompleteTrip, isAdmin }) => {
+const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onCompleteTrip, onAddCatch, isAdmin }) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newTrip, setNewTrip] = useState({
     boat_id: 0,
@@ -161,29 +229,14 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
   const fishingSpotsList = spots.filter((s: any) => s.depth > 0)
 
   const handleAddTrip = () => {
-    if (!newTrip.boat_id) {
-      setError('Выберите судно')
-      return
-    }
-    if (!newTrip.crew[0].name) {
-      setError('Укажите капитана')
-      return
-    }
-    if (!newTrip.fishing_spots[0]) {
-      setError('Выберите место лова')
-      return
-    }
+    if (!newTrip.boat_id) { setError('Выберите судно'); return }
+    if (!newTrip.crew[0].name) { setError('Укажите капитана'); return }
+    if (!newTrip.fishing_spots[0]) { setError('Выберите место лова'); return }
     if (onAddTrip) {
       onAddTrip(newTrip)
       setAddDialogOpen(false)
       setError('')
-      setNewTrip({
-        boat_id: 0,
-        departure_date: new Date().toISOString().split('T')[0],
-        fishing_spots: [''],
-        crew: [{ name: '', position: 'Капитан', experience: 0 }],
-        catches: []
-      })
+      setNewTrip({ boat_id: 0, departure_date: new Date().toISOString().split('T')[0], fishing_spots: [''], crew: [{ name: '', position: 'Капитан', experience: 0 }], catches: [] })
     }
   }
 
@@ -214,7 +267,7 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
           </TableHead>
           <TableBody>
             {trips.map((trip) => (
-              <TripRow key={trip.id} trip={trip} onComplete={onCompleteTrip} isAdmin={isAdmin} />
+              <TripRow key={trip.id} trip={trip} onComplete={onCompleteTrip} onAddCatch={onAddCatch} isAdmin={isAdmin} />
             ))}
           </TableBody>
         </Table>

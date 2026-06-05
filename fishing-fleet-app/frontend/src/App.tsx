@@ -389,3 +389,17 @@ function AppContent() {
 
 function App() { return <ThemeProvider><CssBaseline /><AuthProvider><AppContent /></AuthProvider></ThemeProvider>; }
 export default App;
+
+const addCatchToTrip = (tripId: number, catchData: { fish_type: string; amount: number; quality: string }) => {
+  setTrips(trips.map(t => {
+    if (t.id === tripId) {
+      return {
+        ...t,
+        catches: [...t.catches, catchData],
+        total_catch: t.total_catch + catchData.amount,
+        progress: Math.min(100, t.progress + 10)
+      }
+    }
+    return t
+  }))
+}
