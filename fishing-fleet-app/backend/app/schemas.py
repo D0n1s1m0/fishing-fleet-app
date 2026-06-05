@@ -1,57 +1,27 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import date, datetime
 from typing import Optional, List
-from enum import Enum
 
-class UserRole(str, Enum):
-    GUEST = "guest"
-    CLIENT = "client"
-    ADMIN = "admin"
-
-class BoatStatus(str, Enum):
-    ACTIVE = "active"
-    MAINTENANCE = "maintenance"
-    PENDING = "pending"
-
-class TripStatus(str, Enum):
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    PLANNED = "planned"
-    PENDING = "pending"
-
-class RequestStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-class RequestType(str, Enum):
-    BOAT = "boat"
-    TRIP = "trip"
-    SPOT = "spot"
-
-# User schemas
-class UserBase(BaseModel):
+class UserRegistrationRequest(BaseModel):
     username: str
     email: EmailStr
     full_name: Optional[str] = None
-    avatar: Optional[str] = None
-
-class UserCreate(UserBase):
     password: str
 
-class User(UserBase):
+class UserResponse(BaseModel):
     id: int
-    role: UserRole
-    is_active: bool
+    username: str
+    email: EmailStr
+    full_name: Optional[str]
+    role: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-class Token(BaseModel):
+class AuthenticationToken(BaseModel):
     access_token: str
     token_type: str
 
-# Vessel schemas
-class VesselBase(BaseModel):
+class VesselCreationRequest(BaseModel):
     name: str
     type: str
     displacement: float
@@ -60,53 +30,49 @@ class VesselBase(BaseModel):
     image_url: Optional[str] = None
     captain: str
     crew_capacity: int = 10
-    current_location: str = "Порт"
+    current_location: str = "Порт Мурманск"
     max_speed: float = 10
     description: Optional[str] = None
 
-class VesselCreate(VesselBase):
-    pass
-
-class VesselUpdate(BaseModel):
-    name: Optional[str] = None
-    type: Optional[str] = None
-    displacement: Optional[float] = None
-    captain: Optional[str] = None
-    crew_capacity: Optional[int] = None
-    current_location: Optional[str] = None
-    max_speed: Optional[float] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-
-class Vessel(VesselBase):
+class VesselResponse(BaseModel):
     id: int
-    status: BoatStatus
-    owner_id: int
+    name: str
+    type: str
+    displacement: float
+    build_date: date
+    passport_number: Optional[str]
+    image_url: Optional[str]
+    status: str
+    captain: str
+    crew_capacity: int
     current_crew: int
+    current_location: str
+    max_speed: float
     fuel_level: float
     total_catch: float
+    fish_catch: Optional[dict] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-# Trip schemas
-class TripBase(BaseModel):
+class TripCreationRequest(BaseModel):
     vessel_id: int
+    boat_name: Optional[str] = None
     departure_date: date
     return_date: Optional[date] = None
 
-class TripCreate(TripBase):
-    pass
-
-class Trip(TripBase):
+class TripResponse(BaseModel):
     id: int
-    status: TripStatus
+    vessel_id: int
+    boat_name: Optional[str]
+    departure_date: date
+    return_date: Optional[date]
+    status: str
     total_catch: float
     progress: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-# Fishing Spot schemas
-class FishingSpotBase(BaseModel):
+class FishingLocationRequest(BaseModel):
     name: str
     position_lat: float
     position_lng: float
@@ -115,65 +81,27 @@ class FishingSpotBase(BaseModel):
     catch_rate: str = "medium"
     description: Optional[str] = None
 
-class FishingSpotCreate(FishingSpotBase):
-    pass
-
-class FishingSpotUpdate(BaseModel):
-    name: Optional[str] = None
-    depth: Optional[float] = None
-    fish_types: Optional[List[str]] = None
-    catch_rate: Optional[str] = None
-    description: Optional[str] = None
-
-class FishingSpot(FishingSpotBase):
+class FishingLocationResponse(BaseModel):
     id: int
-    created_at: datetime
+    name: str
+    position_lat: float
+    position_lng: float
+    depth: Optional[float]
+    fish_types: List[str]
+    catch_rate: str
+    description: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
-# Request schemas
-class RequestBase(BaseModel):
-    type: RequestType
+class ApplicationRequest(BaseModel):
+    type: str
     data: dict
 
-class RequestCreate(RequestBase):
-    pass
-
-class RequestUpdate(BaseModel):
-    status: RequestStatus
-
-class Request(RequestBase):
+class ApplicationResponse(BaseModel):
     id: int
     user_id: int
-    status: RequestStatus
+    type: str
+    data: dict
+    status: str
+    created_by: Optional[str]
     created_at: datetime
-    processed_at: Optional[datetime] = None
-    model_config = ConfigDict(from_attributes=True)
-
-# Crew schemas
-class CrewMemberBase(BaseModel):
-    trip_id: int
-    user_id: int
-    position: str
-    name: str
-    experience: int = 0
-
-class CrewMemberCreate(CrewMemberBase):
-    pass
-
-class CrewMember(CrewMemberBase):
-    id: int
-    model_config = ConfigDict(from_attributes=True)
-
-# Catch schemas
-class CatchBase(BaseModel):
-    trip_id: int
-    fish_type_id: int
-    weight_kg: float
-    quality: str = "good"
-
-class CatchCreate(CatchBase):
-    pass
-
-class Catch(CatchBase):
-    id: int
     model_config = ConfigDict(from_attributes=True)

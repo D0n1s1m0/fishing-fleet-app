@@ -1,32 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
-from app.routers import auth, boats, trips, spots, requests, admin
+from app.database import database_engine, Base
+from app.routers import authentication, fleet_vessels, fishing_trips, fishing_locations, applications
 
-# Создание таблиц
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=database_engine)
 
-app = FastAPI(
-    title="Северный Рыболовецкий Флот API",
-    description="API для управления рыболовецким флотом",
-    version="1.0.0"
-)
+application = FastAPI(title="OctoFish API", version="1.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+application.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(boats.router, prefix="/api/boats", tags=["boats"])
-app.include_router(trips.router, prefix="/api/trips", tags=["trips"])
-app.include_router(spots.router, prefix="/api/spots", tags=["spots"])
-app.include_router(requests.router, prefix="/api/requests", tags=["requests"])
-app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+application.include_router(authentication.authentication_router, prefix="/api/auth", tags=["Авторизация"])
+application.include_router(fleet_vessels.vessel_router, prefix="/api/boats", tags=["Суда"])
+application.include_router(fishing_trips.trip_router, prefix="/api/trips", tags=["Рейсы"])
+application.include_router(fishing_locations.location_router, prefix="/api/spots", tags=["Места лова"])
+application.include_router(applications.application_router, prefix="/api/requests", tags=["Заявки"])
 
-@app.get("/")
-def read_root():
-    return {"message": "OctoFish API", "status": "running"}
+@application.get("/")
+def root_endpoint():
+    return {"message": "OctoFish API"}
