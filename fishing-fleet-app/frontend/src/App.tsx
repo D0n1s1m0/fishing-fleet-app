@@ -45,6 +45,7 @@ interface Trip {
   id: number; boat_name: string; boat_id: number; departure_date: string;
   return_date: string | null; status: 'active' | 'completed' | 'planned' | 'pending';
   total_catch: number; progress: number; crew: any[]; catches: any[]; fishing_spots: string[];
+  max_capacity?: number;
 }
 
 const DEFAULT_SPOTS: FishingSpot[] = [
@@ -123,7 +124,8 @@ const useAppStore = () => {
         progress: 0,
         crew: req.data.crew || [],
         catches: [],
-        fishing_spots: req.data.fishing_spots || []
+        fishing_spots: req.data.fishing_spots || [],
+        max_capacity: boat ? boat.displacement : 1000
       };
       setTrips([...trips, newTrip]);
       if (boat) {
@@ -146,7 +148,8 @@ const useAppStore = () => {
       boat_name: boat ? boat.name : 'Неизвестно',
       status: 'active',
       total_catch: 0,
-      progress: 0
+      progress: 0,
+      max_capacity: boat ? boat.displacement : 1000
     };
     setTrips([...trips, newTrip]);
     if (boat) updateBoat(boat.id, { status: 'active', current_location: tripData.fishing_spots ? tripData.fishing_spots[0] : boat.current_location });
@@ -155,11 +158,14 @@ const useAppStore = () => {
   const addCatchToTrip = (tripId: number, catchData: { fish_type: string; amount: number; quality: string }) => {
     setTrips(prevTrips => prevTrips.map(t => {
       if (t.id === tripId) {
+        const newTotalCatch = t.total_catch + catchData.amount;
+        const maxCapacity = t.max_capacity || 1000;
+        const newProgress = Math.min(100, Math.round((newTotalCatch / maxCapacity) * 100));
         return {
           ...t,
           catches: [...t.catches, catchData],
-          total_catch: t.total_catch + catchData.amount,
-          progress: Math.min(100, t.progress + 10)
+          total_catch: newTotalCatch,
+          progress: newProgress
         };
       }
       return t;
