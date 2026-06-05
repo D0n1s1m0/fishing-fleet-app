@@ -81,6 +81,14 @@ const useAppStore = () => {
   useEffect(() => { localStorage.setItem('octofish_trips', JSON.stringify(trips)); }, [trips]);
   useEffect(() => { localStorage.setItem('octofish_requests', JSON.stringify(requests)); }, [requests]);
 
+  useEffect(() => {
+    setBoats(prev => prev.map(b => {
+      const hasActiveTrip = trips.some(t => t.boat_id === b.id && t.status === 'active');
+      if (b.status === 'maintenance' || b.status === 'pending') return b;
+      return { ...b, status: hasActiveTrip ? 'active' : 'in_port' };
+    }));
+  }, [trips]);
+
   const updateBoat = (boatId: number, updates: Partial<Boat>) => setBoats(boats.map(b => b.id === boatId ? { ...b, ...updates } : b));
   const deleteBoat = (boatId: number) => setBoats(boats.filter(b => b.id !== boatId));
   const approveBoat = (boatId: number) => setBoats(boats.map(b => b.id === boatId ? { ...b, status: 'in_port' } : b));
@@ -144,6 +152,20 @@ const useAppStore = () => {
     if (boat) updateBoat(boat.id, { status: 'active', current_location: tripData.fishing_spots ? tripData.fishing_spots[0] : boat.current_location });
   };
 
+  const addCatchToTrip = (tripId: number, catchData: { fish_type: string; amount: number; quality: string }) => {
+    setTrips(prevTrips => prevTrips.map(t => {
+      if (t.id === tripId) {
+        return {
+          ...t,
+          catches: [...t.catches, catchData],
+          total_catch: t.total_catch + catchData.amount,
+          progress: Math.min(100, t.progress + 10)
+        };
+      }
+      return t;
+    }));
+  };
+
   const completeTrip = (tripId: number) => {
     const trip = trips.find(t => t.id === tripId);
     if (trip) {
@@ -168,7 +190,7 @@ const useAppStore = () => {
     return Object.entries(result).map(([name, amount]) => ({ name, amount }));
   };
 
-  return { fishingSpots: fishingSpotsList, allSpots: fishingSpots, boats, trips, requests, pendingCount, activeTripsCount, totalBoats, totalCatch, totalCatchByFish: totalCatchByFish(), addRequest, approveRequest, rejectRequest, updateBoat, deleteBoat, approveBoat, deleteSpot, addTrip, completeTrip };
+  return { fishingSpots: fishingSpotsList, allSpots: fishingSpots, boats, trips, requests, pendingCount, activeTripsCount, totalBoats, totalCatch, totalCatchByFish: totalCatchByFish(), addRequest, approveRequest, rejectRequest, updateBoat, deleteBoat, approveBoat, deleteSpot, addTrip, addCatchToTrip, completeTrip };
 };
 
 function LoginDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -317,9 +339,9 @@ function BoatsPage({ boats, allSpots, onUpdateBoat, onDeleteBoat, onApproveBoat 
   );
 }
 
-function TripsPage({ trips, boats, spots, onAddTrip, onCompleteTrip }: any) {
+function TripsPage({ trips, boats, spots, onAddTrip, onAddCatch, onCompleteTrip }: any) {
   const { isAdmin } = useAuth();
-  return <Container maxWidth="lg" sx={{ mt: 4 }}><TripList trips={trips} boats={boats} spots={spots} onAddTrip={onAddTrip} onCompleteTrip={onCompleteTrip} isAdmin={isAdmin} /></Container>;
+  return <Container maxWidth="lg" sx={{ mt: 4 }}><TripList trips={trips} boats={boats} spots={spots} onAddTrip={onAddTrip} onAddCatch={onAddCatch} onCompleteTrip={onCompleteTrip} isAdmin={isAdmin} /></Container>;
 }
 
 function SpotsPage({ spots, onDeleteSpot }: any) {
@@ -375,7 +397,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<HomePage boats={store.boats} trips={store.trips} spots={store.fishingSpots} activeTripsCount={store.activeTripsCount} totalBoats={store.totalBoats} totalCatch={store.totalCatch} totalCatchByFish={store.totalCatchByFish} />} />
             <Route path="/boats" element={<BoatsPage boats={store.boats} allSpots={store.allSpots} onUpdateBoat={store.updateBoat} onDeleteBoat={store.deleteBoat} onApproveBoat={store.approveBoat} />} />
-            <Route path="/trips" element={<TripsPage trips={store.trips} boats={store.boats} spots={store.fishingSpots} onAddTrip={store.addTrip} onCompleteTrip={store.completeTrip} />} />
+            <Route path="/trips" element={<TripsPage trips={store.trips} boats={store.boats} spots={store.fishingSpots} onAddTrip={store.addTrip} onAddCatch={store.addCatchToTrip} onCompleteTrip={store.completeTrip} />} />
             <Route path="/spots" element={<SpotsPage spots={store.fishingSpots} onDeleteSpot={store.deleteSpot} />} />
             <Route path="/admin" element={<AdminPanel requests={store.requests} onApprove={store.approveRequest} onReject={store.rejectRequest} />} />
           </Routes>
@@ -389,17 +411,3 @@ function AppContent() {
 
 function App() { return <ThemeProvider><CssBaseline /><AuthProvider><AppContent /></AuthProvider></ThemeProvider>; }
 export default App;
-
-const addCatchToTrip = (tripId: number, catchData: { fish_type: string; amount: number; quality: string }) => {
-  setTrips(trips.map(t => {
-    if (t.id === tripId) {
-      return {
-        ...t,
-        catches: [...t.catches, catchData],
-        total_catch: t.total_catch + catchData.amount,
-        progress: Math.min(100, t.progress + 10)
-      }
-    }
-    return t
-  }))
-}
