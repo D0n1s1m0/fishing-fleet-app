@@ -46,12 +46,12 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
 
   const maxCapacity = trip.max_capacity || 1000
   const remainingCapacity = maxCapacity - trip.total_catch
-  const captain = trip.crew.length > 0 ? trip.crew[0] : null
+  const captain = trip.crew && trip.crew.length > 0 ? trip.crew[0] : null
 
   const handleAddCatch = () => {
     if (!catchData.fish_type) { setError('Выберите вид рыбы'); return }
     if (catchData.amount <= 0) { setError('Укажите количество больше нуля'); return }
-    if (catchData.amount > remainingCapacity) { setError(`Недостаточно места на судне. Доступно: ${remainingCapacity} т из ${maxCapacity} т`); return }
+    if (catchData.amount > remainingCapacity) { setError('Недостаточно места. Доступно: ' + remainingCapacity + ' т из ' + maxCapacity + ' т'); return }
     if (onAddCatch) { onAddCatch(trip.id, catchData); setCatchDialogOpen(false); setError(''); setCatchData({ fish_type: '', amount: 0, quality: 'good' }) }
   }
 
@@ -91,22 +91,12 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
               </Box>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Капитан
-                  </Typography>
-                  {captain ? (
-                    <Typography variant="body1">{captain.name}</Typography>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">Не указан</Typography>
-                  )}
+                  <Typography variant="subtitle1" gutterBottom><PersonIcon sx={{ mr: 1 }} />Капитан</Typography>
+                  {captain ? <Typography variant="body1">{captain.name}</Typography> : <Typography variant="body2" color="text.secondary">Не указан</Typography>}
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    <RestaurantIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Улов по видам
-                  </Typography>
-                  {trip.catches.length > 0 ? (
+                  <Typography variant="subtitle1" gutterBottom><RestaurantIcon sx={{ mr: 1 }} />Улов по видам</Typography>
+                  {trip.catches && trip.catches.length > 0 ? (
                     <Table size="small">
                       <TableHead><TableRow><TableCell>Вид рыбы</TableCell><TableCell>Количество (т)</TableCell><TableCell>Качество</TableCell></TableRow></TableHead>
                       <TableBody>
@@ -115,19 +105,17 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
                         ))}
                       </TableBody>
                     </Table>
-                  ) : (
-                    <Alert severity="info">Улов пока не добавлен</Alert>
-                  )}
+                  ) : <Alert severity="info">Улов пока не добавлен</Alert>}
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" gutterBottom><LocationOnIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Места лова</Typography>
+                  <Typography variant="subtitle1" gutterBottom><LocationOnIcon sx={{ mr: 1 }} />Места лова</Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {trip.fishing_spots.map((spot, idx) => (<Chip key={idx} label={spot} variant="outlined" />))}
+                    {trip.fishing_spots && trip.fishing_spots.map((spot, idx) => (<Chip key={idx} label={spot} variant="outlined" />))}
                   </Box>
                 </Grid>
                 {trip.status === 'active' && (
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>Прогресс рейса: {trip.progress}% ({trip.total_catch} т из {maxCapacity} т)</Typography>
+                    <Typography variant="subtitle2" gutterBottom>Прогресс: {trip.progress}% ({trip.total_catch} т из {maxCapacity} т)</Typography>
                     <LinearProgress variant="determinate" value={trip.progress} sx={{ height: 8 }} />
                   </Grid>
                 )}
@@ -136,36 +124,6 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
           </Collapse>
         </TableCell>
       </TableRow>
-
-      <Dialog open={catchDialogOpen} onClose={() => setCatchDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Добавить улов</DialogTitle>
-        <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Alert severity="info" sx={{ mb: 2 }}>Вместимость судна: {maxCapacity} т. Занято: {trip.total_catch} т. Доступно: {remainingCapacity} т.</Alert>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth><InputLabel>Вид рыбы</InputLabel>
-                <Select value={catchData.fish_type} label="Вид рыбы" onChange={(e) => setCatchData({ ...catchData, fish_type: e.target.value })}>
-                  <MenuItem value="">Выберите вид...</MenuItem>
-                  <MenuItem value="Треска">Треска</MenuItem><MenuItem value="Пикша">Пикша</MenuItem><MenuItem value="Минтай">Минтай</MenuItem>
-                  <MenuItem value="Сайда">Сайда</MenuItem><MenuItem value="Камбала">Камбала</MenuItem><MenuItem value="Палтус">Палтус</MenuItem><MenuItem value="Зубатка">Зубатка</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth label="Количество (т)" type="number" value={catchData.amount || ''} onChange={(e) => setCatchData({ ...catchData, amount: parseFloat(e.target.value) || 0 })} inputProps={{ min: 0, max: remainingCapacity, step: 0.1 }} />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth><InputLabel>Качество</InputLabel>
-                <Select value={catchData.quality} label="Качество" onChange={(e) => setCatchData({ ...catchData, quality: e.target.value })}>
-                  <MenuItem value="excellent">Отличное</MenuItem><MenuItem value="good">Хорошее</MenuItem><MenuItem value="poor">Низкое</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions><Button onClick={() => setCatchDialogOpen(false)}>Отмена</Button><Button variant="contained" onClick={handleAddCatch}>Добавить</Button></DialogActions>
-      </Dialog>
     </>
   )
 }
@@ -183,7 +141,7 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
     if (!newTrip.captain_name || newTrip.captain_name.trim().length < 5) { setError('Введите полное ФИО капитана (не менее 5 символов)'); return }
     if (!newTrip.fishing_spots[0]) { setError('Выберите место лова'); return }
     if (onAddTrip) {
-      onAddTrip({ ...newTrip, crew: [{ name: newTrip.captain_name.trim(), position: 'Капитан', experience: 0 }] })
+      onAddTrip({ boat_id: newTrip.boat_id, departure_date: newTrip.departure_date, fishing_spots: newTrip.fishing_spots, crew: [{ name: newTrip.captain_name.trim(), position: 'Капитан', experience: 0 }] })
       setAddDialogOpen(false)
       setError('')
       setNewTrip({ boat_id: 0, departure_date: new Date().toISOString().split('T')[0], fishing_spots: [''], captain_name: '' })
@@ -211,7 +169,7 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
               <FormControl fullWidth><InputLabel>Выберите судно</InputLabel>
                 <Select value={newTrip.boat_id} label="Выберите судно" onChange={(e) => setNewTrip({ ...newTrip, boat_id: Number(e.target.value) })}>
                   <MenuItem value={0}>Выберите судно...</MenuItem>
-                  {activeBoats.map(boat => (<MenuItem key={boat.id} value={boat.id}>{boat.name}</MenuItem>))}
+                  {activeBoats.map((boat: any) => (<MenuItem key={boat.id} value={boat.id}>{boat.name}</MenuItem>))}
                 </Select>
               </FormControl>
             </Grid>
@@ -222,7 +180,7 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
               <FormControl fullWidth><InputLabel>Место лова</InputLabel>
                 <Select value={newTrip.fishing_spots[0] || ''} label="Место лова" onChange={(e) => setNewTrip({ ...newTrip, fishing_spots: [e.target.value] })}>
                   <MenuItem value="">Выберите место...</MenuItem>
-                  {fishingSpotsList.map(spot => (<MenuItem key={spot.id} value={spot.name}>{spot.name}</MenuItem>))}
+                  {fishingSpotsList.map((spot: any) => (<MenuItem key={spot.id} value={spot.name}>{spot.name}</MenuItem>))}
                 </Select>
               </FormControl>
             </Grid>
