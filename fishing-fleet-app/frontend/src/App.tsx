@@ -277,7 +277,7 @@ function BoatsPage({ boats, allSpots, onUpdateBoat, onDeleteBoat, onApproveBoat 
           <Grid item xs={12} sm={6} md={4} key={boat.id}>
             <Box sx={{ position: 'relative' }}>
               <BoatCard boat={boat} onClick={() => setSelectedBoat(boat)} />
-              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: 'white', mr: 0.5 }} onClick={(e) => { e.stopPropagation(); setSelectedBoat(boat); }}><EditIcon fontSize="small" /></IconButton><IconButton size="small" sx={{ bgcolor: 'white' }} onClick={(e) => { e.stopPropagation(); onDeleteBoat(boat.id); }}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
+              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: "background.paper", mr: 0.5 }} onClick={(e) => { e.stopPropagation(); setSelectedBoat(boat); }}><EditIcon fontSize="small" /></IconButton><IconButton size="small" sx={{ bgcolor: "background.paper" }} onClick={(e) => { e.stopPropagation(); onDeleteBoat(boat.id); }}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
             </Box>
           </Grid>
         ))}
@@ -303,7 +303,7 @@ function SpotsPage({ spots, onDeleteSpot }: any) {
         {validSpots.map((spot: FishingSpot) => (
           <Grid item xs={12} sm={6} md={4} key={spot.id}>
             <Card sx={{ position: 'relative' }}>
-              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: 'white' }} onClick={() => onDeleteSpot(spot.id)}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
+              {isAdmin && <Box sx={{ position: 'absolute', top: 8, right: 8 }}><IconButton size="small" sx={{ bgcolor: "background.paper" }} onClick={() => onDeleteSpot(spot.id)}><DeleteIcon fontSize="small" color="error" /></IconButton></Box>}
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><Box sx={{ width: 12, height: 12, bgcolor: spot.catchRate === 'high' ? '#4caf50' : spot.catchRate === 'medium' ? '#ff9800' : '#f44336', mr: 1 }} /><Typography variant="h6">{spot.name}</Typography></Box>
                 <Typography variant="body2">Координаты: {spot.position[0]}°N, {spot.position[1]}°E</Typography>

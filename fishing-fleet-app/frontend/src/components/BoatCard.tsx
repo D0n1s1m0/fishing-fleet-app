@@ -46,11 +46,8 @@ const BoatPlaceholder = ({ name }: { name: string }) => (
     color: 'white'
   }}>
     <DirectionsBoatIcon sx={{ fontSize: 80, mb: 1, opacity: 0.9 }} />
-    <Typography variant="h6" sx={{ fontFamily: '"Times New Roman", Times, serif', textShadow: '1px 1px 3px rgba(0,0,0,0.3)' }}>
+    <Typography variant="h6" sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {name}
-    </Typography>
-    <Typography variant="caption" sx={{ fontFamily: '"Times New Roman", Times, serif', opacity: 0.9 }}>
-      Северный Флот
     </Typography>
   </Box>
 );
@@ -68,10 +65,10 @@ const BoatCard: React.FC<BoatCardProps> = ({ boat, onClick }) => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'active': return '🚢 В рейсе';
-      case 'maintenance': return '🔧 На обслуживании';
-      case 'pending': return '⏳ На проверке';
-      case 'in_port': return '⚓ В порту';
+      case 'active': return 'В рейсе';
+      case 'maintenance': return 'На обслуживании';
+      case 'pending': return 'На проверке';
+      case 'in_port': return 'В порту';
       default: return status;
     }
   };
@@ -88,11 +85,7 @@ const BoatCard: React.FC<BoatCardProps> = ({ boat, onClick }) => {
       }} 
       onClick={onClick}
     >
-      {boat.image_url && !boat.image_url.includes('placeholder') ? (
-        <Box component="img" src={boat.image_url} alt={boat.name} sx={{ width: '100%', height: 200, objectFit: 'cover' }} />
-      ) : (
-        <BoatPlaceholder name={boat.name} />
-      )}
+      <BoatPlaceholder name={boat.name} />
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
           <Typography variant="h6" sx={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 600, color: 'primary.main' }}>
@@ -102,12 +95,12 @@ const BoatCard: React.FC<BoatCardProps> = ({ boat, onClick }) => {
             label={getStatusLabel(boat.status)}
             color={getStatusColor(boat.status) as any}
             size="small"
-            sx={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 500 }}
+            sx={{ fontFamily: '"Times New Roman", Times, serif' }}
           />
         </Box>
         
         <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
-          {boat.type} • Построен {new Date(boat.build_date).toLocaleDateString('ru-RU')}
+          {boat.type} | {new Date(boat.build_date).toLocaleDateString('ru-RU')}
         </Typography>
         
         <Divider sx={{ my: 1.5 }} />
@@ -144,8 +137,8 @@ const BoatCard: React.FC<BoatCardProps> = ({ boat, onClick }) => {
         
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <WaterDropIcon fontSize="small" /> Топливо
+            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
+              <WaterDropIcon fontSize="small" sx={{ verticalAlign: 'middle' }} /> Топливо
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
               {boat.fuel_level}%
@@ -154,17 +147,17 @@ const BoatCard: React.FC<BoatCardProps> = ({ boat, onClick }) => {
           <LinearProgress 
             variant="determinate" 
             value={boat.fuel_level} 
-            sx={{ height: 8, borderRadius: 4 }}
+            sx={{ height: 8 }}
             color={boat.fuel_level > 50 ? 'success' : boat.fuel_level > 20 ? 'warning' : 'error'}
           />
         </Box>
         
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1.5 }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
-            🐟 Улов: {boat.total_catch} т
+            Улов: {boat.total_catch} т
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <CalendarTodayIcon fontSize="small" /> 
+          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Times New Roman", Times, serif' }}>
+            <CalendarTodayIcon fontSize="small" sx={{ verticalAlign: 'middle' }} /> 
             ТО: {new Date(boat.next_maintenance).toLocaleDateString('ru-RU')}
           </Typography>
         </Box>
