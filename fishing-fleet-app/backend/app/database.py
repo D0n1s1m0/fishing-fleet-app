@@ -5,19 +5,19 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-DATABASE_CONNECTION_URL = os.getenv("DATABASE_URL", "sqlite:///./octofish.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./octofish.db")
 
-if DATABASE_CONNECTION_URL.startswith("sqlite"):
-    database_engine = create_engine(DATABASE_CONNECTION_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("sqlite"):
+    database_engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
-    database_engine = create_engine(DATABASE_CONNECTION_URL)
+    database_engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=database_engine)
 Base = declarative_base()
 
 def get_database_session():
-    database_session = SessionLocal()
+    db = SessionLocal()
     try:
-        yield database_session
+        yield db
     finally:
-        database_session.close()
+        db.close()

@@ -39,16 +39,10 @@ interface TripListProps {
 }
 
 function validateFullName(name: string): string | null {
-  if (!name || name.trim().length < 5) {
-    return 'ФИО должно содержать не менее 5 символов'
-  }
+  if (!name || name.trim().length < 5) return 'ФИО должно содержать не менее 5 символов'
   const parts = name.trim().split(/\s+/)
-  if (parts.length < 2) {
-    return 'Введите фамилию и имя (минимум два слова)'
-  }
-  if (parts.length < 3) {
-    return 'Введите полное ФИО: фамилию, имя и отчество'
-  }
+  if (parts.length < 2) return 'Введите фамилию и имя (минимум два слова)'
+  if (parts.length < 3) return 'Введите полное ФИО: фамилию, имя и отчество'
   return null
 }
 
@@ -56,17 +50,22 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
   const [open, setOpen] = useState(false)
   const [catchDialogOpen, setCatchDialogOpen] = useState(false)
   const [catchData, setCatchData] = useState({ fish_type: '', amount: 0, quality: 'good' })
-  const [error, setError] = useState('')
+  const [catchError, setCatchError] = useState('')
 
   const maxCapacity = trip.max_capacity || 1000
   const remainingCapacity = maxCapacity - trip.total_catch
   const captain = trip.crew && trip.crew.length > 0 ? trip.crew[0] : null
 
   const handleAddCatch = () => {
-    if (!catchData.fish_type) { setError('Выберите вид рыбы'); return }
-    if (catchData.amount <= 0) { setError('Укажите количество больше нуля'); return }
-    if (catchData.amount > remainingCapacity) { setError('Недостаточно места. Доступно: ' + remainingCapacity + ' т из ' + maxCapacity + ' т'); return }
-    if (onAddCatch) { onAddCatch(trip.id, catchData); setCatchDialogOpen(false); setError(''); setCatchData({ fish_type: '', amount: 0, quality: 'good' }) }
+    setCatchError('')
+    if (!catchData.fish_type) { setCatchError('Выберите вид рыбы'); return }
+    if (!catchData.amount || catchData.amount <= 0) { setCatchError('Укажите количество больше нуля'); return }
+    if (catchData.amount > remainingCapacity) { setCatchError('Недостаточно места. Доступно: ' + remainingCapacity + ' т из ' + maxCapacity + ' т'); return }
+    if (onAddCatch) {
+      onAddCatch(trip.id, catchData)
+      setCatchDialogOpen(false)
+      setCatchData({ fish_type: '', amount: 0, quality: 'good' })
+    }
   }
 
   return (
@@ -100,7 +99,7 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">Детали рейса</Typography>
                 {trip.status === 'active' && isAdmin && (
-                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setError(''); setCatchDialogOpen(true) }}>Добавить улов</Button>
+                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCatchDialogOpen(true)}>Добавить улов</Button>
                 )}
               </Box>
               <Grid container spacing={3}>
@@ -138,6 +137,36 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
           </Collapse>
         </TableCell>
       </TableRow>
+
+      <Dialog open={catchDialogOpen} onClose={() => { setCatchDialogOpen(false); setCatchError('') }} maxWidth="xs" fullWidth>
+        <DialogTitle>Добавить улов</DialogTitle>
+        <DialogContent>
+          {catchError && <Alert severity="error" sx={{ mb: 2 }}>{catchError}</Alert>}
+          <Alert severity="info" sx={{ mb: 2 }}>Вместимость: {maxCapacity} т. Занято: {trip.total_catch} т. Доступно: {remainingCapacity} т.</Alert>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth><InputLabel>Вид рыбы</InputLabel>
+                <Select value={catchData.fish_type} label="Вид рыбы" onChange={(e) => setCatchData({ ...catchData, fish_type: e.target.value })}>
+                  <MenuItem value="">Выберите вид...</MenuItem>
+                  <MenuItem value="Треска">Треска</MenuItem><MenuItem value="Пикша">Пикша</MenuItem><MenuItem value="Минтай">Минтай</MenuItem>
+                  <MenuItem value="Сайда">Сайда</MenuItem><MenuItem value="Камбала">Камбала</MenuItem><MenuItem value="Палтус">Палтус</MenuItem><MenuItem value="Зубатка">Зубатка</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Количество (т)" type="number" value={catchData.amount || ''} onChange={(e) => setCatchData({ ...catchData, amount: parseFloat(e.target.value) || 0 })} inputProps={{ min: 0, max: remainingCapacity, step: 0.1 }} />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth><InputLabel>Качество</InputLabel>
+                <Select value={catchData.quality} label="Качество" onChange={(e) => setCatchData({ ...catchData, quality: e.target.value })}>
+                  <MenuItem value="excellent">Отличное</MenuItem><MenuItem value="good">Хорошее</MenuItem><MenuItem value="poor">Низкое</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions><Button onClick={() => { setCatchDialogOpen(false); setCatchError('') }}>Отмена</Button><Button variant="contained" onClick={handleAddCatch}>Добавить</Button></DialogActions>
+      </Dialog>
     </>
   )
 }
@@ -145,20 +174,20 @@ const TripRow: React.FC<{ trip: Trip; onComplete?: (id: number) => void; onAddCa
 const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onCompleteTrip, onAddCatch, isAdmin }) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newTrip, setNewTrip] = useState({ boat_id: 0, departure_date: new Date().toISOString().split('T')[0], fishing_spots: [''], captain_name: '' })
-  const [error, setError] = useState('')
+  const [addError, setAddError] = useState('')
 
   const activeBoats = boats.filter((b: any) => b.status === 'in_port')
   const fishingSpotsList = spots.filter((s: any) => s.depth > 0)
 
   const handleAddTrip = () => {
-    if (!newTrip.boat_id) { setError('Выберите судно'); return }
+    if (!newTrip.boat_id) { setAddError('Выберите судно'); return }
     const nameError = validateFullName(newTrip.captain_name)
-    if (nameError) { setError(nameError); return }
-    if (!newTrip.fishing_spots[0]) { setError('Выберите место лова'); return }
+    if (nameError) { setAddError(nameError); return }
+    if (!newTrip.fishing_spots[0]) { setAddError('Выберите место лова'); return }
     if (onAddTrip) {
       onAddTrip({ boat_id: newTrip.boat_id, departure_date: newTrip.departure_date, fishing_spots: newTrip.fishing_spots, crew: [{ name: newTrip.captain_name.trim(), position: 'Капитан', experience: 0 }] })
       setAddDialogOpen(false)
-      setError('')
+      setAddError('')
       setNewTrip({ boat_id: 0, departure_date: new Date().toISOString().split('T')[0], fishing_spots: [''], captain_name: '' })
     }
   }
@@ -166,19 +195,19 @@ const TripList: React.FC<TripListProps> = ({ trips, boats, spots, onAddTrip, onC
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ color: 'primary.main' }}>Рейсы флота ({trips.filter(t => t.status === 'active').length} активных)</Typography>
+        <Typography variant="h5" sx={{ color: 'primary.main' }}>Рейсы флота ({trips.filter((t: Trip) => t.status === 'active').length} активных)</Typography>
         {isAdmin && (<Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>Новый рейс</Button>)}
       </Box>
       <TableContainer component={Paper}>
         <Table>
           <TableHead><TableRow><TableCell /><TableCell>Судно</TableCell><TableCell>Дата выхода</TableCell><TableCell>Дата возвращения</TableCell><TableCell>Улов (т)</TableCell><TableCell>Статус</TableCell></TableRow></TableHead>
-          <TableBody>{trips.map((trip) => (<TripRow key={trip.id} trip={trip} onComplete={onCompleteTrip} onAddCatch={onAddCatch} isAdmin={isAdmin} />))}</TableBody>
+          <TableBody>{trips.map((trip: Trip) => (<TripRow key={trip.id} trip={trip} onComplete={onCompleteTrip} onAddCatch={onAddCatch} isAdmin={isAdmin} />))}</TableBody>
         </Table>
       </TableContainer>
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Новый рейс</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <FormControl fullWidth><InputLabel>Выберите судно</InputLabel>
